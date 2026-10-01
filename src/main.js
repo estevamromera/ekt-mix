@@ -476,25 +476,29 @@ function draw() {
   }
   // Cada nota vira uma linha pontilhada na cor de quem comentou (trecho: as duas
   // bordas pontilhadas e o meio levemente pintado).
-  const dotted = (xx, color) => {
-    c.strokeStyle = color; c.lineWidth = 2.5; c.lineCap = 'round'; c.setLineDash([0.1, 6]);
-    c.beginPath(); c.moveTo(xx, 10); c.lineTo(xx, h); c.stroke(); c.setLineDash([]); c.lineCap = 'butt';
-    c.fillStyle = color; c.beginPath(); c.moveTo(xx - 6, 0); c.lineTo(xx + 6, 0); c.lineTo(xx, 8); c.closePath(); c.fill();
+  // Ponto: linha pontilhada fina com uma setinha no topo.
+  // Trecho: faixa sólida no topo de ponta a ponta, fundo pintado e bordas pontilhadas.
+  const dots = (xx, color, from = 0) => {
+    c.strokeStyle = color; c.lineWidth = 1.25; c.lineCap = 'round'; c.setLineDash([0.1, 4]);
+    c.beginPath(); c.moveTo(xx, from); c.lineTo(xx, h); c.stroke(); c.setLineDash([]); c.lineCap = 'butt';
   };
   for (const n of state.track.notes) {
     const p = person(n.author);
     const alpha = n.resolved ? 0.35 : 1;
     if (n.end_s != null) {
       if (n.end_s < v.start || n.time_s > v.end) continue;
-      const x1 = x(n.time_s), x2 = x(n.end_s);
-      c.globalAlpha = alpha * 0.14; c.fillStyle = p.color; c.fillRect(x1, 0, x2 - x1, h);
+      const x1 = Math.max(0, x(n.time_s)), x2 = Math.min(w, x(n.end_s));
+      c.globalAlpha = alpha * 0.22; c.fillStyle = p.color; c.fillRect(x1, 0, x2 - x1, h);
       c.globalAlpha = alpha;
-      if (n.time_s >= v.start) dotted(x1, p.color);
-      if (n.end_s <= v.end) { c.strokeStyle = p.color; c.lineWidth = 2.5; c.lineCap = 'round'; c.setLineDash([0.1, 6]); c.beginPath(); c.moveTo(x2, 0); c.lineTo(x2, h); c.stroke(); c.setLineDash([]); c.lineCap = 'butt'; }
+      c.fillRect(x1, 0, x2 - x1, 5);
+      if (n.time_s >= v.start) { c.fillRect(x1, 0, 2, 12); dots(x1, p.color, 12); }
+      if (n.end_s <= v.end) { c.fillRect(x2 - 2, 0, 2, 12); dots(x2, p.color, 12); }
     } else {
       if (n.time_s < v.start || n.time_s > v.end) continue;
+      const xx = x(n.time_s);
       c.globalAlpha = alpha;
-      dotted(x(n.time_s), p.color);
+      c.fillStyle = p.color; c.beginPath(); c.moveTo(xx - 5, 0); c.lineTo(xx + 5, 0); c.lineTo(xx, 7); c.closePath(); c.fill();
+      dots(xx, p.color, 9);
     }
   }
   c.globalAlpha = 1;
