@@ -10,6 +10,7 @@ const ls = {
   set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} },
 };
 
+const ICON_BUBBLE = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z"/></svg>';
 const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>';
 const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1"/><rect x="14" y="4.5" width="4.5" height="15" rx="1"/></svg>';
 
@@ -367,7 +368,7 @@ function noteHtml(n, myName) {
       <button class="note-time" data-seek="${n.time_s}">${label}</button>
       <span class="author" style="color:${p.color};background:${p.color}1c"><i class="dot" style="background:${p.color}"></i>${escapeHtml(p.name)}</span>
       <span class="note-actions">
-        <button class="tiny" data-reply="${n.id}">Responder</button>
+        <button class="tiny with-ico" data-reply="${n.id}">${ICON_BUBBLE}Comentário${(n.replies || []).length ? ` (${n.replies.length})` : ''}</button>
         ${mine ? `<button class="tiny" data-edit="${n.id}">Editar</button><button class="tiny" data-del="${n.id}">Excluir</button>` : ''}
       </span>
     </div>
@@ -390,8 +391,8 @@ function openReply(id) {
   const card = $(`[data-note="${id}"]`);
   if (!card || card.querySelector('.reply-form')) return card?.querySelector('.reply-form textarea')?.focus();
   state.editing = `reply:${id}`;
-  card.insertAdjacentHTML('beforeend', `<div class="reply-form"><textarea rows="2" placeholder="Responder como ${escapeHtml(person(state.me).name)}…"></textarea>
-    <div class="edit-foot"><button class="btn small ghost" data-cancel>Cancelar</button><button class="btn small primary" data-send>Responder</button></div></div>`);
+  card.insertAdjacentHTML('beforeend', `<div class="reply-form"><textarea rows="2" placeholder="Comentário de ${escapeHtml(person(state.me).name)}…"></textarea>
+    <div class="edit-foot"><button class="btn small ghost" data-cancel>Cancelar</button><button class="btn small primary" data-send>Comentar</button></div></div>`);
   const form = card.querySelector('.reply-form'), ta = form.querySelector('textarea');
   ta.focus();
   const close = () => { state.editing = null; renderNotes(); };
@@ -416,7 +417,7 @@ function openReply(id) {
 
 async function deleteReply(id) {
   const n = state.track.notes.find(x => (x.replies || []).some(r => r.id === id));
-  if (!n || !confirm('Excluir sua resposta?')) return;
+  if (!n || !confirm('Excluir seu comentário?')) return;
   try {
     await api.deleteReply(id);
     n.replies = n.replies.filter(r => r.id !== id);
