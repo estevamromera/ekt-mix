@@ -6,7 +6,7 @@ Versão online do app de revisão de mixes do EKT. Toca as mixes direto do servi
 
 - **Acesso:** link com o código da banda (`/?k=CODIGO`). Na primeira vez a pessoa escolhe quem é (Niper, Rapha, Xris, Theo, Emmily, Estevam).
 - **Notas:** dar pause abre o campo de nota já no ponto em que a música parou (no celular o teclado abre junto). Tocar no campo enquanto a música toca também pausa e marca o ponto. "Salvar e continuar" salva e volta a tocar. Os botões −5s/−2s/+2s ajustam o ponto. Arrastar na waveform marca um trecho (IN/OUT).
-- **Notas dos outros** aparecem sozinhas a cada 15 s. Qualquer um marca uma nota como resolvida (✓); só o autor edita ou exclui.
+- **Notas dos outros** aparecem sozinhas a cada 15 s. Só o autor edita ou exclui a própria nota.
 - **Enviar mixes** (menu ⋯, no computador): escolhe os WAVs, o navegador converte para MP3 192 kbps, desenha a waveform e sobe. Título e versão saem do nome do arquivo, como no app original (`Musica RC MIX 3.wav`).
 - **Exportar** (menu ⋯): planilha CSV ou JSON com todas as notas, e "copiar notas desta música" para colar no WhatsApp.
 

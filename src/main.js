@@ -157,7 +157,7 @@ function renderTracks() {
   el.innerHTML = state.tracks.map(t => `
     <button class="track ${t.id === state.track?.id ? 'on' : ''}" data-id="${t.id}">
       <span class="track-name">${escapeHtml(t.title)}</span>
-      <span class="track-meta"><span>${escapeHtml(t.version || 'sem versão')}</span>${t.open_count ? `<span class="open">· ${t.open_count} aberta${t.open_count === 1 ? '' : 's'}</span>` : t.note_count ? `<span>· ${t.note_count} nota${t.note_count === 1 ? '' : 's'}</span>` : ''}</span>
+      <span class="track-meta"><span>${escapeHtml(t.version || 'sem versão')}</span>${t.note_count ? `<span class="open">· ${t.note_count} nota${t.note_count === 1 ? '' : 's'}</span>` : ''}</span>
     </button>`).join('');
   $$('.track', el).forEach(b => b.onclick = () => selectTrack(b.dataset.id));
 }
@@ -317,9 +317,9 @@ async function saveNote() {
 
 const round = n => Math.round(n * 1000) / 1000;
 
-function bumpCounts(delta, openDelta = delta) {
+function bumpCounts(delta) {
   const t = state.tracks.find(x => x.id === state.track.id);
-  if (t) { t.note_count += delta; t.open_count += openDelta; renderTracks(); }
+  if (t) { t.note_count += delta; renderTracks(); }
 }
 
 function seek(time) {
@@ -336,13 +336,12 @@ function renderNotes() {
   if (state.editing && el.querySelector('.note textarea')) return; // não atrapalha quem está editando
   const all = [...state.track.notes].sort((a, b) => a.time_s - b.time_s);
   const authors = [...new Set(all.map(n => person(n.author).id))];
-  const shown = all.filter(n => state.filter === 'all' || (state.filter === 'open' ? !n.resolved : person(n.author).id === state.filter));
+  const shown = all.filter(n => state.filter === 'all' || person(n.author).id === state.filter);
   const myName = person(state.me).name;
   el.innerHTML = `
     <div class="notes-head"><h2>Notas</h2><span class="count">${all.length}</span></div>
     <div class="filters">
       <button class="chip ${state.filter === 'all' ? 'on' : ''}" data-f="all">Todas</button>
-      <button class="chip ${state.filter === 'open' ? 'on' : ''}" data-f="open">Abertas</button>
       ${authors.map(id => { const p = person(id); return `<button class="chip ${state.filter === p.id ? 'on' : ''}" data-f="${p.id}"><i class="dot" style="background:${p.color}"></i>${escapeHtml(p.name)}</button>`; }).join('')}
     </div>
     ${shown.length ? shown.map(n => noteHtml(n, myName)).join('') : `<div class="empty">${all.length ? 'Nada neste filtro.' : 'Ainda sem notas. Dê play e pause onde quiser comentar.'}</div>`}`;
@@ -352,7 +351,6 @@ function renderNotes() {
     if (e.target.closest('.note-actions, textarea, .edit-foot') || state.editing === card.dataset.note) return;
     seek(Number(card.dataset.t)); audio.play().catch(() => {});
   });
-  $$('[data-resolve]', el).forEach(b => b.onclick = () => toggleResolved(b.dataset.resolve));
   $$('[data-edit]', el).forEach(b => b.onclick = () => editNote(b.dataset.edit));
   $$('[data-del]', el).forEach(b => b.onclick = () => deleteNote(b.dataset.del));
   highlightNear();
@@ -362,12 +360,11 @@ function noteHtml(n, myName) {
   const p = person(n.author);
   const mine = n.author === myName;
   const label = n.end_s != null ? `${formatTime(n.time_s)} – ${formatTime(n.end_s)}` : formatTime(n.time_s);
-  return `<article class="note ${n.resolved ? 'resolved' : ''}" data-note="${n.id}" data-t="${n.time_s}" data-e="${n.end_s ?? n.time_s}">
+  return `<article class="note" data-note="${n.id}" data-t="${n.time_s}" data-e="${n.end_s ?? n.time_s}">
     <div class="note-top">
       <button class="note-time" data-seek="${n.time_s}">${label}</button>
       <span class="author" style="color:${p.color};background:${p.color}1c"><i class="dot" style="background:${p.color}"></i>${escapeHtml(p.name)}</span>
       <span class="note-actions">
-        <button class="tiny check ${n.resolved ? 'on' : ''}" data-resolve="${n.id}" title="${n.resolved ? 'Reabrir' : 'Marcar como resolvida'}">${n.resolved ? '✓ feita' : '✓'}</button>
         ${mine ? `<button class="tiny" data-edit="${n.id}">Editar</button><button class="tiny" data-del="${n.id}">Excluir</button>` : ''}
       </span>
     </div>
@@ -381,17 +378,6 @@ function highlightNear() {
     const s = Number(el.dataset.t), e = Number(el.dataset.e);
     el.classList.toggle('near', t >= s - 1.5 && t <= e + 1.5);
   });
-}
-
-async function toggleResolved(id) {
-  const n = state.track.notes.find(x => x.id === id);
-  if (!n) return;
-  try {
-    const updated = await api.updateNote(id, { resolved: !n.resolved });
-    Object.assign(n, updated);
-    bumpCounts(0, n.resolved ? -1 : 1);
-    renderNotes(); draw();
-  } catch (e) { toast(`Erro: ${e.message}`); }
 }
 
 function editNote(id) {
@@ -428,7 +414,7 @@ async function deleteNote(id) {
   try {
     await api.deleteNote(id);
     state.track.notes = state.track.notes.filter(x => x.id !== id);
-    bumpCounts(-1, n.resolved ? 0 : -1);
+    bumpCounts(-1);
     renderNotes(); draw();
   } catch (e) { toast(`Erro: ${e.message}`); }
 }
@@ -484,7 +470,7 @@ function draw() {
   };
   for (const n of state.track.notes) {
     const p = person(n.author);
-    const alpha = n.resolved ? 0.35 : 1;
+    const alpha = 1;
     if (n.end_s != null) {
       if (n.end_s < v.start || n.time_s > v.end) continue;
       const x1 = Math.max(0, x(n.time_s)), x2 = Math.min(w, x(n.end_s));
@@ -648,7 +634,7 @@ async function menuAction(act) {
   if (act === 'copy') {
     const t = state.track;
     if (!t) return;
-    const lines = [...t.notes].sort((a, b) => a.time_s - b.time_s).map(n => `${n.resolved ? '✓ ' : ''}${formatTime(n.time_s).slice(0, 5)}${n.end_s != null ? `–${formatTime(n.end_s).slice(0, 5)}` : ''} (${n.author}): ${n.body}`);
+    const lines = [...t.notes].sort((a, b) => a.time_s - b.time_s).map(n => `${formatTime(n.time_s).slice(0, 5)}${n.end_s != null ? `–${formatTime(n.end_s).slice(0, 5)}` : ''} (${n.author}): ${n.body}`);
     await copy(`*${t.title}${t.version ? ` · ${t.version}` : ''}*\n${lines.join('\n') || 'Sem notas.'}`, 'Notas copiadas.');
     return;
   }
@@ -659,8 +645,8 @@ async function menuAction(act) {
       download(`ekt-mix-review-${stamp}.json`, JSON.stringify({ app: 'EKT Mix Review', exportedAt: new Date().toISOString(), tracks: data }, null, 2), 'application/json');
     } else {
       const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-      const rows = [['musica', 'versao', 'inicio', 'fim', 'autor', 'nota', 'resolvida', 'criada_em']];
-      for (const t of data) for (const n of t.notes) rows.push([t.title, t.version, formatTime(n.time_s), n.end_s != null ? formatTime(n.end_s) : '', n.author, n.body, n.resolved ? 'sim' : 'não', n.created_at]);
+      const rows = [['musica', 'versao', 'inicio', 'fim', 'autor', 'nota', 'criada_em']];
+      for (const t of data) for (const n of t.notes) rows.push([t.title, t.version, formatTime(n.time_s), n.end_s != null ? formatTime(n.end_s) : '', n.author, n.body, n.created_at]);
       download(`ekt-mix-review-${stamp}.csv`, '﻿' + rows.map(r => r.map(esc).join(',')).join('\n'), 'text/csv;charset=utf-8');
     }
   } catch (e) { toast(`Erro: ${e.message}`); }
