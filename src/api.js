@@ -24,6 +24,8 @@ export const api = {
   updateNote: (id, { body = null, time = null, end = null, clearEnd = false, resolved = null }) =>
     rpc('mixreview_update_note', { p_id: id, p_body: body, p_time: time, p_end: end, p_clear_end: clearEnd, p_resolved: resolved }),
   deleteNote: id => rpc('mixreview_delete_note', { p_id: id }),
+  addReply: (note, author, body) => rpc('mixreview_add_reply', { p_note: note, p_author: author, p_body: body }),
+  deleteReply: id => rpc('mixreview_delete_reply', { p_id: id }),
   updateTrack: (id, { title = null, version = null, archived = null }) => rpc('mixreview_update_track', { p_id: id, p_title: title, p_version: version, p_archived: archived }),
   addTrack: (t) => rpc('mixreview_add_track', { p_title: t.title, p_version: t.version, p_audio_path: t.path, p_source_file: t.sourceFile, p_duration: t.duration, p_peaks: t.peaks }),
   exportAll: () => rpc('mixreview_export'),

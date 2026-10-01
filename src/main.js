@@ -300,7 +300,7 @@ async function saveNote() {
   btn.disabled = true;
   try {
     const note = await api.addNote(state.track.id, person(state.me).name, round(start), end == null ? null : round(end), body);
-    state.track.notes.push(note);
+    state.track.notes.push({ ...note, replies: [] });
     bumpCounts(1);
     ta.value = '';
     state.draft = null; state.range = null;
@@ -348,11 +348,13 @@ function renderNotes() {
   $$('.chip', el).forEach(b => b.onclick = () => { state.filter = b.dataset.f; renderNotes(); });
   // A nota inteira é clicável (vai para o ponto e toca), menos os botões e a edição.
   $$('.note[data-note]', el).forEach(card => card.onclick = e => {
-    if (e.target.closest('.note-actions, textarea, .edit-foot') || state.editing === card.dataset.note) return;
+    if (e.target.closest('.note-actions, textarea, .edit-foot, .replies, .reply-form') || state.editing === card.dataset.note) return;
     seek(Number(card.dataset.t)); audio.play().catch(() => {});
   });
   $$('[data-edit]', el).forEach(b => b.onclick = () => editNote(b.dataset.edit));
   $$('[data-del]', el).forEach(b => b.onclick = () => deleteNote(b.dataset.del));
+  $$('[data-reply]', el).forEach(b => b.onclick = () => openReply(b.dataset.reply));
+  $$('[data-del-reply]', el).forEach(b => b.onclick = () => deleteReply(b.dataset.delReply));
   highlightNear();
 }
 
@@ -365,11 +367,61 @@ function noteHtml(n, myName) {
       <button class="note-time" data-seek="${n.time_s}">${label}</button>
       <span class="author" style="color:${p.color};background:${p.color}1c"><i class="dot" style="background:${p.color}"></i>${escapeHtml(p.name)}</span>
       <span class="note-actions">
+        <button class="tiny" data-reply="${n.id}">Responder</button>
         ${mine ? `<button class="tiny" data-edit="${n.id}">Editar</button><button class="tiny" data-del="${n.id}">Excluir</button>` : ''}
       </span>
     </div>
     <p class="note-body">${escapeHtml(n.body)}</p>
+    ${(n.replies || []).length ? `<div class="replies">${n.replies.map(r => replyHtml(r, myName)).join('')}</div>` : ''}
   </article>`;
+}
+
+function replyHtml(r, myName) {
+  const p = person(r.author);
+  return `<div class="reply" data-reply-id="${r.id}">
+    <span class="author small" style="color:${p.color};background:${p.color}1c"><i class="dot" style="background:${p.color}"></i>${escapeHtml(p.name)}</span>
+    ${r.author === myName ? `<button class="tiny" data-del-reply="${r.id}">Excluir</button>` : ''}
+    <p class="reply-body">${escapeHtml(r.body)}</p>
+  </div>`;
+}
+
+// Resposta a uma nota: não tem tempo próprio, fica pendurada embaixo da nota.
+function openReply(id) {
+  const card = $(`[data-note="${id}"]`);
+  if (!card || card.querySelector('.reply-form')) return card?.querySelector('.reply-form textarea')?.focus();
+  state.editing = `reply:${id}`;
+  card.insertAdjacentHTML('beforeend', `<div class="reply-form"><textarea rows="2" placeholder="Responder como ${escapeHtml(person(state.me).name)}…"></textarea>
+    <div class="edit-foot"><button class="btn small ghost" data-cancel>Cancelar</button><button class="btn small primary" data-send>Responder</button></div></div>`);
+  const form = card.querySelector('.reply-form'), ta = form.querySelector('textarea');
+  ta.focus();
+  const close = () => { state.editing = null; renderNotes(); };
+  form.querySelector('[data-cancel]').onclick = close;
+  const send = async () => {
+    const body = ta.value.trim();
+    if (!body) return ta.focus();
+    const btn = form.querySelector('[data-send]'); btn.disabled = true;
+    try {
+      const reply = await api.addReply(id, person(state.me).name, body);
+      const n = state.track.notes.find(x => x.id === id);
+      (n.replies ||= []).push(reply);
+      close();
+    } catch (e) { btn.disabled = false; toast(`Não enviou: ${e.message}`); }
+  };
+  form.querySelector('[data-send]').onclick = send;
+  ta.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); send(); }
+    if (e.key === 'Escape') { e.preventDefault(); close(); }
+  });
+}
+
+async function deleteReply(id) {
+  const n = state.track.notes.find(x => (x.replies || []).some(r => r.id === id));
+  if (!n || !confirm('Excluir sua resposta?')) return;
+  try {
+    await api.deleteReply(id);
+    n.replies = n.replies.filter(r => r.id !== id);
+    renderNotes();
+  } catch (e) { toast(`Erro: ${e.message}`); }
 }
 
 function highlightNear() {
@@ -610,8 +662,8 @@ setInterval(async () => {
   try {
     const fresh = await api.track(state.track.id);
     if (!fresh || fresh.id !== state.track.id) return;
-    const before = JSON.stringify(state.track.notes.map(n => [n.id, n.updated_at]));
-    if (before === JSON.stringify(fresh.notes.map(n => [n.id, n.updated_at]))) return;
+    const sig = notes => JSON.stringify(notes.map(n => [n.id, n.updated_at, (n.replies || []).map(r => r.id)]));
+    if (sig(state.track.notes) === sig(fresh.notes)) return;
     state.track.notes = fresh.notes;
     renderNotes(); draw();
     const list = await api.tracks(); state.tracks = list; renderTracks();
@@ -634,7 +686,7 @@ async function menuAction(act) {
   if (act === 'copy') {
     const t = state.track;
     if (!t) return;
-    const lines = [...t.notes].sort((a, b) => a.time_s - b.time_s).map(n => `${formatTime(n.time_s).slice(0, 5)}${n.end_s != null ? `–${formatTime(n.end_s).slice(0, 5)}` : ''} (${n.author}): ${n.body}`);
+    const lines = [...t.notes].sort((a, b) => a.time_s - b.time_s).map(n => `${formatTime(n.time_s).slice(0, 5)}${n.end_s != null ? `–${formatTime(n.end_s).slice(0, 5)}` : ''} (${n.author}): ${n.body}${(n.replies || []).map(r => `\n   ↳ ${r.author}: ${r.body}`).join('')}`);
     await copy(`*${t.title}${t.version ? ` · ${t.version}` : ''}*\n${lines.join('\n') || 'Sem notas.'}`, 'Notas copiadas.');
     return;
   }
@@ -645,8 +697,8 @@ async function menuAction(act) {
       download(`ekt-mix-review-${stamp}.json`, JSON.stringify({ app: 'EKT Mix Review', exportedAt: new Date().toISOString(), tracks: data }, null, 2), 'application/json');
     } else {
       const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-      const rows = [['musica', 'versao', 'inicio', 'fim', 'autor', 'nota', 'criada_em']];
-      for (const t of data) for (const n of t.notes) rows.push([t.title, t.version, formatTime(n.time_s), n.end_s != null ? formatTime(n.end_s) : '', n.author, n.body, n.created_at]);
+      const rows = [['musica', 'versao', 'inicio', 'fim', 'autor', 'nota', 'respostas', 'criada_em']];
+      for (const t of data) for (const n of t.notes) rows.push([t.title, t.version, formatTime(n.time_s), n.end_s != null ? formatTime(n.end_s) : '', n.author, n.body, (n.replies || []).map(r => `${r.author}: ${r.body}`).join(' | '), n.created_at]);
       download(`ekt-mix-review-${stamp}.csv`, '﻿' + rows.map(r => r.map(esc).join(',')).join('\n'), 'text/csv;charset=utf-8');
     }
   } catch (e) { toast(`Erro: ${e.message}`); }

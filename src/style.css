@@ -100,7 +100,7 @@ header.top { position: sticky; top: 0; z-index: 5; display: flex; align-items: c
 .note.near { background: linear-gradient(90deg, var(--lime-dim), transparent 70%); }
 .note.resolved { opacity: .5; }
 .note.resolved .note-body { text-decoration: line-through; }
-.note-top { display: flex; align-items: center; gap: 8px; }
+.note-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .note-time { border: 0; background: none; padding: 4px 0; color: var(--lime); font-weight: 800; font-variant-numeric: tabular-nums; }
 .author { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 700; }
 .note-actions { margin-left: auto; display: flex; gap: 2px; }
@@ -150,3 +150,11 @@ kbd { border: 1px solid #465066; border-bottom-width: 2px; padding: 0 5px; borde
   .wave { height: 190px; }
   .notes { border-left: 1px solid var(--line); min-height: calc(100dvh - 61px); padding-top: 14px; }
 }
+
+.replies { margin: 8px 0 0 10px; padding-left: 12px; border-left: 2px solid var(--line); display: grid; gap: 8px; cursor: default; }
+.reply { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.reply .tiny { margin-left: auto; padding: 2px 6px; font-size: 12px; }
+.reply-body { flex-basis: 100%; margin: 0; white-space: pre-wrap; color: #c7cfdb; font-size: 14px; overflow-wrap: anywhere; }
+.author.small { font-size: 11px; padding: 1px 7px; }
+.reply-form { margin: 8px 0 0 10px; cursor: default; }
+.reply-form textarea { min-height: 54px; margin-top: 0; }
