@@ -13,7 +13,7 @@ export const escapeHtml = v => String(v ?? '').replace(/[&<>'"]/g, c => ({ '&': 
 
 export function person(author) {
   const key = String(author || '').toLowerCase();
-  const alias = { nipper: 'niper', rafa: 'rapha', cris: 'xris', emily: 'emmily' }[key] || key;
+  const alias = { nipper: 'niper', miguel: 'niper', rafa: 'rapha', cris: 'xris', emily: 'emmily' }[key] || key;
   return PEOPLE.find(p => p.id === alias) || { id: key, name: author || '?', color: '#aab4c5' };
 }
 

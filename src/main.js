@@ -14,7 +14,7 @@ const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v
 const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1"/><rect x="14" y="4.5" width="4.5" height="15" rx="1"/></svg>';
 
 const state = {
-  me: ls.get(LS.me),
+  me: ls.get(LS.me) === 'miguel' ? 'niper' : ls.get(LS.me), // Miguel e Niper são a mesma pessoa
   tracks: [],
   track: null,            // { id, title, version, audio_path, duration_s, peaks, notes }
   draft: null,            // { time } enquanto o campo de nota está aberto
@@ -467,14 +467,14 @@ function draw() {
       for (let i = i0; i < i1 && i < peaks.length; i++) amp = Math.max(amp, peaks[i]);
     }
     const a = Math.max(2, amp * h * 0.86);
-    c.fillStyle = t0 <= played ? '#c7ff45' : '#4a5468';
+    c.fillStyle = t0 <= played ? '#b9c1cf' : '#3c4454'; // cinza: as cores ficam só para as notas
     c.fillRect(px, mid - a / 2, bar - 1, a);
   }
   // Cada nota vira uma linha pontilhada na cor de quem comentou (trecho: as duas
   // bordas pontilhadas e o meio levemente pintado).
   const dotted = (xx, color) => {
-    c.strokeStyle = color; c.lineWidth = 2; c.setLineDash([3, 4]);
-    c.beginPath(); c.moveTo(xx, 0); c.lineTo(xx, h); c.stroke(); c.setLineDash([]);
+    c.strokeStyle = color; c.lineWidth = 2.5; c.lineCap = 'round'; c.setLineDash([0.1, 6]);
+    c.beginPath(); c.moveTo(xx, 10); c.lineTo(xx, h); c.stroke(); c.setLineDash([]); c.lineCap = 'butt';
     c.fillStyle = color; c.beginPath(); c.moveTo(xx - 6, 0); c.lineTo(xx + 6, 0); c.lineTo(xx, 8); c.closePath(); c.fill();
   };
   for (const n of state.track.notes) {
@@ -486,7 +486,7 @@ function draw() {
       c.globalAlpha = alpha * 0.14; c.fillStyle = p.color; c.fillRect(x1, 0, x2 - x1, h);
       c.globalAlpha = alpha;
       if (n.time_s >= v.start) dotted(x1, p.color);
-      if (n.end_s <= v.end) { c.strokeStyle = p.color; c.lineWidth = 2; c.setLineDash([3, 4]); c.beginPath(); c.moveTo(x2, 0); c.lineTo(x2, h); c.stroke(); c.setLineDash([]); }
+      if (n.end_s <= v.end) { c.strokeStyle = p.color; c.lineWidth = 2.5; c.lineCap = 'round'; c.setLineDash([0.1, 6]); c.beginPath(); c.moveTo(x2, 0); c.lineTo(x2, h); c.stroke(); c.setLineDash([]); c.lineCap = 'butt'; }
     } else {
       if (n.time_s < v.start || n.time_s > v.end) continue;
       c.globalAlpha = alpha;

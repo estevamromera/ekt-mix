@@ -11,5 +11,4 @@ export const PEOPLE = [
   { id: 'theo', name: 'Theo', color: '#ffad5c' },
   { id: 'emmily', name: 'Emmily', color: '#ff6b7a' },
   { id: 'estevam', name: 'Estevam', color: '#5eead4' },
-  { id: 'miguel', name: 'Miguel', color: '#f9e063' },
 ];
