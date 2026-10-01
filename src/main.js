@@ -471,7 +471,7 @@ function draw() {
       for (let i = i0; i < i1 && i < peaks.length; i++) amp = Math.max(amp, peaks[i]);
     }
     const a = Math.max(2, amp * h * 0.86);
-    c.fillStyle = t0 <= played ? '#b9c1cf' : '#3c4454'; // cinza: as cores ficam só para as notas
+    c.fillStyle = t0 <= played ? '#7a8394' : '#3c4454'; // cinza: as cores ficam só para as notas
     c.fillRect(px, mid - a / 2, bar - 1, a);
   }
   // Cada nota vira uma linha pontilhada na cor de quem comentou (trecho: as duas
