@@ -70,7 +70,7 @@ header.top { position: sticky; top: 0; z-index: 5; display: flex; align-items: c
 .time.dur { text-align: right; }
 .skip { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); font-size: 13px; font-weight: 700; color: var(--muted); }
 .play { width: 72px; height: 72px; border: 0; border-radius: 50%; background: var(--lime); color: #172006; display: grid; place-items: center; box-shadow: 0 8px 30px rgba(199,255,69,.18); }
-.play svg { width: 28px; height: 28px; }
+.play svg { width: 28px; height: 28px; pointer-events: none; }
 .speed { justify-self: end; border: 1px solid var(--line); background: var(--panel-2); border-radius: 8px; padding: 6px; font-size: 13px; }
 
 .composer { margin-top: 14px; background: #10151e; border: 1px solid var(--line); border-radius: 14px; padding: 12px; }

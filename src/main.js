@@ -108,6 +108,7 @@ function renderShell() {
             <button data-act="json">Baixar todas as notas (JSON)</button>
             <button data-act="link">Copiar link de acesso para a banda</button>
             <button data-act="upload">Enviar novas mixes</button>
+            <button data-act="import">Importar notas do app antigo (JSON)</button>
             <button data-act="keys">Atalhos de teclado</button>
           </div>
         </div>
@@ -469,19 +470,27 @@ function draw() {
     c.fillStyle = t0 <= played ? '#c7ff45' : '#4a5468';
     c.fillRect(px, mid - a / 2, bar - 1, a);
   }
+  // Cada nota vira uma linha pontilhada na cor de quem comentou (trecho: as duas
+  // bordas pontilhadas e o meio levemente pintado).
+  const dotted = (xx, color) => {
+    c.strokeStyle = color; c.lineWidth = 2; c.setLineDash([3, 4]);
+    c.beginPath(); c.moveTo(xx, 0); c.lineTo(xx, h); c.stroke(); c.setLineDash([]);
+    c.fillStyle = color; c.beginPath(); c.moveTo(xx - 6, 0); c.lineTo(xx + 6, 0); c.lineTo(xx, 8); c.closePath(); c.fill();
+  };
   for (const n of state.track.notes) {
     const p = person(n.author);
-    c.globalAlpha = n.resolved ? 0.35 : 1;
+    const alpha = n.resolved ? 0.35 : 1;
     if (n.end_s != null) {
       if (n.end_s < v.start || n.time_s > v.end) continue;
       const x1 = x(n.time_s), x2 = x(n.end_s);
-      c.globalAlpha *= 0.18; c.fillStyle = p.color; c.fillRect(x1, 0, x2 - x1, h);
-      c.globalAlpha = n.resolved ? 0.35 : 1; c.fillRect(x1, 0, x2 - x1, 3);
+      c.globalAlpha = alpha * 0.14; c.fillStyle = p.color; c.fillRect(x1, 0, x2 - x1, h);
+      c.globalAlpha = alpha;
+      if (n.time_s >= v.start) dotted(x1, p.color);
+      if (n.end_s <= v.end) { c.strokeStyle = p.color; c.lineWidth = 2; c.setLineDash([3, 4]); c.beginPath(); c.moveTo(x2, 0); c.lineTo(x2, h); c.stroke(); c.setLineDash([]); }
     } else {
       if (n.time_s < v.start || n.time_s > v.end) continue;
-      const xx = x(n.time_s);
-      c.fillStyle = p.color; c.fillRect(xx - 1, 0, 2, h);
-      c.beginPath(); c.moveTo(xx - 6, 0); c.lineTo(xx + 6, 0); c.lineTo(xx, 8); c.closePath(); c.fill();
+      c.globalAlpha = alpha;
+      dotted(x(n.time_s), p.color);
     }
   }
   c.globalAlpha = 1;
@@ -547,8 +556,14 @@ function updateTime() {
   if (!cur) return;
   cur.textContent = formatTime(audio.currentTime);
   $('#dur').textContent = formatTime(duration());
-  $('#play').innerHTML = audio.paused ? ICON_PLAY : ICON_PAUSE;
-  $('#play').setAttribute('aria-label', audio.paused ? 'Tocar' : 'Pausar');
+  // Só troca o ícone quando o estado muda: trocar o SVG a cada frame engolia
+  // o clique de quem tocava no centro do botão.
+  const play = $('#play');
+  const label = audio.paused ? 'Tocar' : 'Pausar';
+  if (play.getAttribute('aria-label') !== label || !play.firstElementChild) {
+    play.innerHTML = audio.paused ? ICON_PLAY : ICON_PAUSE;
+    play.setAttribute('aria-label', label);
+  }
   if (!state.draft) { const at = $('#atTime'); if (at) at.textContent = formatTime(audio.currentTime); }
   const sec = Math.floor(audio.currentTime);
   if (sec !== lastNear) { lastNear = sec; highlightNear(); }
@@ -616,6 +631,7 @@ async function menuAction(act) {
   $('#menu').hidden = true;
   if (act === 'upload') { location.hash = '#/enviar'; return; }
   if (act === 'keys') { $('#keys').showModal(); return; }
+  if (act === 'import') { pickImport(); return; }
   if (act === 'link') {
     const link = `${location.origin}/?k=${encodeURIComponent(ls.get(LS.code))}`;
     await copy(link, 'Link copiado. Mande no grupo da banda.');
@@ -640,6 +656,38 @@ async function menuAction(act) {
       download(`ekt-mix-review-${stamp}.csv`, '﻿' + rows.map(r => r.map(esc).join(',')).join('\n'), 'text/csv;charset=utf-8');
     }
   } catch (e) { toast(`Erro: ${e.message}`); }
+}
+
+// Importa o JSON exportado pelo app offline do Niper. Casa cada música pelo nome
+// do arquivo original e não duplica nota que já existe.
+function pickImport() {
+  const input = Object.assign(document.createElement('input'), { type: 'file', accept: 'application/json,.json' });
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (!file) return;
+    let data;
+    try { data = JSON.parse(await file.text()); } catch { return toast('Esse arquivo não é um JSON válido.'); }
+    const norm = v => String(v || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    let added = 0, skipped = 0, missing = [];
+    for (const item of data.tracks || []) {
+      const notes = (item.notes || []).filter(n => (n.note ?? n.text ?? '').trim());
+      if (!notes.length) continue;
+      const target = state.tracks.find(t => norm(t.source_file) === norm(item.sourceFile));
+      if (!target) { missing.push(item.title || item.sourceFile); continue; }
+      const current = (await api.track(target.id)).notes;
+      for (const n of notes) {
+        const author = person(n.authorId || n.author).name;
+        const time = Number(n.timeSeconds ?? n.time ?? 0), end = n.endTimeSeconds == null ? null : Number(n.endTimeSeconds);
+        const body = String(n.note ?? n.text).trim();
+        if (current.some(o => o.author === author && Math.abs(o.time_s - time) < 0.01 && o.body === body)) { skipped++; continue; }
+        await api.addNote(target.id, author, time, end != null && end > time ? end : null, body);
+        added++;
+      }
+    }
+    await loadTracks();
+    toast(`${added} nota${added === 1 ? '' : 's'} importada${added === 1 ? '' : 's'}${skipped ? `, ${skipped} já existia${skipped === 1 ? '' : 'm'}` : ''}${missing.length ? `. Sem a música: ${missing.join(', ')}` : ''}.`);
+  };
+  input.click();
 }
 
 async function copy(text, msg) {
