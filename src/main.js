@@ -347,7 +347,11 @@ function renderNotes() {
     </div>
     ${shown.length ? shown.map(n => noteHtml(n, myName)).join('') : `<div class="empty">${all.length ? 'Nada neste filtro.' : 'Ainda sem notas. Dê play e pause onde quiser comentar.'}</div>`}`;
   $$('.chip', el).forEach(b => b.onclick = () => { state.filter = b.dataset.f; renderNotes(); });
-  $$('[data-seek]', el).forEach(b => b.onclick = () => { seek(Number(b.dataset.seek)); audio.play().catch(() => {}); });
+  // A nota inteira é clicável (vai para o ponto e toca), menos os botões e a edição.
+  $$('.note[data-note]', el).forEach(card => card.onclick = e => {
+    if (e.target.closest('.note-actions, textarea, .edit-foot') || state.editing === card.dataset.note) return;
+    seek(Number(card.dataset.t)); audio.play().catch(() => {});
+  });
   $$('[data-resolve]', el).forEach(b => b.onclick = () => toggleResolved(b.dataset.resolve));
   $$('[data-edit]', el).forEach(b => b.onclick = () => editNote(b.dataset.edit));
   $$('[data-del]', el).forEach(b => b.onclick = () => deleteNote(b.dataset.del));

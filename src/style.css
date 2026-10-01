@@ -94,7 +94,9 @@ header.top { position: sticky; top: 0; z-index: 5; display: flex; align-items: c
 .filters::-webkit-scrollbar { display: none; }
 .chip { flex: none; border: 1px solid var(--line); background: var(--panel); border-radius: 20px; padding: 6px 11px; font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }
 .chip.on { border-color: var(--lime); color: var(--lime); }
-.note { border-bottom: 1px solid var(--line); padding: 12px 4px; }
+.note { border-bottom: 1px solid var(--line); padding: 12px 8px; cursor: pointer; border-radius: 8px; transition: background .12s; }
+.note:hover { background: var(--panel); }
+.note:active { background: var(--panel-2); }
 .note.near { background: linear-gradient(90deg, var(--lime-dim), transparent 70%); }
 .note.resolved { opacity: .5; }
 .note.resolved .note-body { text-decoration: line-through; }
