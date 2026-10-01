@@ -368,7 +368,7 @@ function noteHtml(n, myName) {
       <button class="note-time" data-seek="${n.time_s}">${label}</button>
       <span class="author" style="color:${p.color};background:${p.color}1c"><i class="dot" style="background:${p.color}"></i>${escapeHtml(p.name)}</span>
       <span class="note-actions">
-        <button class="tiny with-ico" data-reply="${n.id}">${ICON_BUBBLE}Comentário${(n.replies || []).length ? ` (${n.replies.length})` : ''}</button>
+        <button class="tiny with-ico" data-reply="${n.id}">${ICON_BUBBLE}Comentar${(n.replies || []).length ? ` (${n.replies.length})` : ''}</button>
         ${mine ? `<button class="tiny" data-edit="${n.id}">Editar</button><button class="tiny" data-del="${n.id}">Excluir</button>` : ''}
       </span>
     </div>
@@ -698,7 +698,7 @@ async function menuAction(act) {
       download(`ekt-mix-review-${stamp}.json`, JSON.stringify({ app: 'EKT Mix Review', exportedAt: new Date().toISOString(), tracks: data }, null, 2), 'application/json');
     } else {
       const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-      const rows = [['musica', 'versao', 'inicio', 'fim', 'autor', 'nota', 'respostas', 'criada_em']];
+      const rows = [['musica', 'versao', 'inicio', 'fim', 'autor', 'nota', 'comentarios', 'criada_em']];
       for (const t of data) for (const n of t.notes) rows.push([t.title, t.version, formatTime(n.time_s), n.end_s != null ? formatTime(n.end_s) : '', n.author, n.body, (n.replies || []).map(r => `${r.author}: ${r.body}`).join(' | '), n.created_at]);
       download(`ekt-mix-review-${stamp}.csv`, '﻿' + rows.map(r => r.map(esc).join(',')).join('\n'), 'text/csv;charset=utf-8');
     }
