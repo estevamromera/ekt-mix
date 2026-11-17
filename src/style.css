@@ -50,6 +50,8 @@ header.top { position: sticky; top: 0; z-index: 5; display: flex; align-items: c
 .track-name { display: block; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .track-meta { display: flex; gap: 6px; color: var(--muted); font-size: 12px; margin-top: 2px; white-space: nowrap; }
 .track-meta .open { color: var(--lime); }
+.track { cursor: pointer; }
+.track-pick { display: block; width: 100%; margin-top: 8px; background: var(--bg, #0d0f14); color: inherit; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 13px; }
 .tracks-empty { color: var(--muted); padding: 4px 0; font-size: 14px; }
 
 .stage { min-width: 0; }

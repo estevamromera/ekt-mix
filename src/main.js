@@ -143,9 +143,32 @@ async function loadTracks() {
   }
   renderTracks();
   const saved = ls.get(LS.track);
-  const pick = state.tracks.find(t => t.id === state.track?.id) || state.tracks.find(t => t.id === saved) || state.tracks[0];
+  const first = songGroups()[0]?.mixes[0];
+  const pick = state.tracks.find(t => t.id === state.track?.id) || state.tracks.find(t => t.id === (saved && latestOf(saved))) || first;
   if (pick) await selectTrack(pick.id, { keepTime: pick.id === state.track?.id });
   else renderStage();
+}
+
+function versionRank(t) {
+  const m = String(t.version || '').match(/(\d+(?:\.\d+)?)/);
+  return m ? Number(m[1]) : -1;
+}
+
+function songGroups() {
+  const map = new Map();
+  for (const t of state.tracks) {
+    const key = String(t.title || '').trim().toLowerCase();
+    if (!map.has(key)) map.set(key, { key, title: t.title, mixes: [] });
+    map.get(key).mixes.push(t);
+  }
+  const groups = [...map.values()];
+  for (const g of groups) g.mixes.sort((x, y) => versionRank(y) - versionRank(x) || String(y.created_at || '').localeCompare(String(x.created_at || '')));
+  return groups;
+}
+
+function latestOf(id) {
+  const g = songGroups().find(g => g.mixes.some(m => m.id === id));
+  return g ? g.mixes[0].id : id;
 }
 
 function renderTracks() {
@@ -155,12 +178,25 @@ function renderTracks() {
     el.innerHTML = '<div class="tracks-empty">Nenhuma mix enviada ainda.</div>';
     return;
   }
-  el.innerHTML = state.tracks.map(t => `
-    <button class="track ${t.id === state.track?.id ? 'on' : ''}" data-id="${t.id}">
-      <span class="track-name">${escapeHtml(t.title)}</span>
-      <span class="track-meta"><span>${escapeHtml(t.version || 'sem versão')}</span>${t.note_count ? `<span class="open">· ${t.note_count} nota${t.note_count === 1 ? '' : 's'}</span>` : ''}</span>
-    </button>`).join('');
-  $$('.track', el).forEach(b => b.onclick = () => selectTrack(b.dataset.id));
+  el.innerHTML = songGroups().map(g => {
+    const on = g.mixes.some(m => m.id === state.track?.id);
+    const notes = g.mixes.reduce((n, m) => n + (m.note_count || 0), 0);
+    const count = `${g.mixes.length} mix${g.mixes.length === 1 ? '' : 'es'}`;
+    const pick = on ? `<select class="track-pick" aria-label="Versão">${g.mixes.map((m, i) => `<option value="${m.id}" ${m.id === state.track?.id ? 'selected' : ''}>${escapeHtml(m.version || 'sem versão')}${i === 0 ? ' · última' : ''}${m.note_count ? ` · ${m.note_count} nota${m.note_count === 1 ? '' : 's'}` : ''}</option>`).join('')}</select>` : '';
+    return `
+    <div class="track ${on ? 'on' : ''}" data-id="${g.mixes[0].id}" role="button" tabindex="0">
+      <span class="track-name">${escapeHtml(g.title)}</span>
+      <span class="track-meta"><span>${count}</span>${notes ? `<span class="open">· ${notes} nota${notes === 1 ? '' : 's'}</span>` : ''}</span>
+      ${pick}
+    </div>`;
+  }).join('');
+  $$('.track', el).forEach(b => {
+    const go = () => { if (!b.classList.contains('on')) selectTrack(b.dataset.id); };
+    b.onclick = e => { if (!e.target.closest('select')) go(); };
+    b.onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('select')) { e.preventDefault(); go(); } };
+  });
+  const sel = $('.track-pick', el);
+  if (sel) sel.onchange = () => selectTrack(sel.value);
 }
 
 async function selectTrack(id, { keepTime = false } = {}) {
