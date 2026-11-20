@@ -1,7 +1,7 @@
 import './style.css';
 import { PEOPLE } from './config.js';
 import { api, setCode } from './api.js';
-import { $, $$, formatTime, escapeHtml, person, toast, download } from './util.js';
+import { $, $$, formatTime, escapeHtml, person, toast, download, loader } from './util.js';
 import { renderUpload } from './upload.js';
 
 const LS = { code: 'ektmr.code', me: 'ektmr.me', track: 'ektmr.track' };
@@ -115,7 +115,7 @@ function renderShell() {
         </div>
       </header>
       <div class="layout">
-        <nav class="tracks" id="tracks"><div class="tracks-empty">Carregando músicas…</div></nav>
+        <nav class="tracks" id="tracks"><div class="tracks-empty">${loader('sm', 'Carregando músicas')}</div></nav>
         <section class="stage" id="stage"></section>
       </div>
     </div>

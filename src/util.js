@@ -9,6 +9,8 @@ export function formatTime(seconds) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${d}`;
 }
 
+export const loader = (size = 'md', label = 'Carregando') => `<span class="bm-wave bm-wave--${size}" role="status" aria-label="${label}">${'<i></i>'.repeat(6)}</span>`;
+
 export const escapeHtml = v => String(v ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
 
 export function person(author) {

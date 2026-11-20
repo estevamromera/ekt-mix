@@ -162,3 +162,16 @@ kbd { border: 1px solid #465066; border-bottom-width: 2px; padding: 0 5px; borde
 .reply-form textarea { min-height: 54px; margin-top: 0; }
 .with-ico { display: inline-flex; align-items: center; gap: 5px; }
 .with-ico .ico { width: 15px; height: 15px; pointer-events: none; }
+
+.bm-wave { display: inline-flex; align-items: center; gap: 5px; height: 40px; flex: none; }
+.bm-wave i { display: block; width: 6px; height: 100%; border-radius: 3px; background: var(--lime); transform: scaleY(.2); animation: bm-wave 1s ease-in-out infinite; }
+.bm-wave--xs { gap: 2px; height: 12px; } .bm-wave--xs i { width: 2px; border-radius: 1px; }
+.bm-wave--sm { gap: 2px; height: 16px; } .bm-wave--sm i { width: 3px; border-radius: 1.5px; }
+.bm-wave--lg { gap: 9px; height: 96px; } .bm-wave--lg i { width: 12px; border-radius: 6px; }
+.bm-wave i:nth-child(2) { animation-delay: -.45s; animation-duration: .9s; }
+.bm-wave i:nth-child(3) { animation-delay: -.15s; animation-duration: 1.1s; }
+.bm-wave i:nth-child(4) { animation-delay: -.6s; animation-duration: .95s; }
+.bm-wave i:nth-child(5) { animation-delay: -.3s; animation-duration: 1.05s; }
+.bm-wave i:nth-child(6) { animation-delay: -.75s; animation-duration: .85s; }
+@keyframes bm-wave { 0%, 100% { transform: scaleY(.2); } 50% { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .bm-wave i { animation: none; transform: scaleY(.6); } }
